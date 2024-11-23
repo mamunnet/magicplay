@@ -84,7 +84,7 @@ export const AgentManagementPage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-100">
-              {currentAgentType.title} Management
+              {currentAgentType.title}
             </h1>
             <button
               onClick={() => {

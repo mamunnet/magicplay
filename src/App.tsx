@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Header } from './components/Header';
@@ -6,10 +5,11 @@ import { AgentList } from './pages/AgentList';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { NoticePage } from './pages/NoticePage';
 import { AgentManagementPage } from './pages/AgentManagementPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
+import { SettingsPage } from './pages/SettingsPage';
+import { NoticePage } from './pages/NoticePage';
 
 function App() {
   return (
@@ -25,8 +25,9 @@ function App() {
               <div className="min-h-screen bg-[#111827]">
                 <Routes>
                   <Route path="/" element={<AdminDashboard />} />
-                  <Route path="/notices" element={<NoticePage />} />
                   <Route path="/agents/:type" element={<AgentManagementPage />} />
+                  <Route path="/notices" element={<NoticePage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
                 </Routes>
               </div>
             </ProtectedRoute>

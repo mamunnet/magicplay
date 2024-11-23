@@ -38,9 +38,17 @@ export const AgentForm: React.FC<AgentFormProps> = ({
 
   useEffect(() => {
     const loadUplineAgents = async () => {
-      if (agentTypes[type].uplineType) {
-        const agents = await db.getUplineAgents(agentTypes[type].uplineType!);
-        setUplineAgents(agents);
+      try {
+        const config = agentTypes[type];
+        if (config.uplineType) {
+          const agents = await db.getAgents(config.uplineType);
+          setUplineAgents(agents);
+        } else {
+          setUplineAgents([]);
+        }
+      } catch (error) {
+        console.error('Error loading upline agents:', error);
+        toast.error('Error loading upline agents');
       }
     };
 
@@ -50,165 +58,137 @@ export const AgentForm: React.FC<AgentFormProps> = ({
   const onSubmit = async (data: AgentFormData) => {
     try {
       setIsLoading(true);
-      
-      const agentData: Omit<Agent, 'id' | 'agentId' | 'role' | 'rating' | 'actions' | 'avatar' | 'successRate'> = {
-        name: data.name.trim(),
-        phone: data.phone.trim(),
+      const formattedData = {
+        ...data,
         type,
-        status: 'active' as AgentStatus,
-        upline_id: data.upline_id || null,
-        specialty: '',
-        experience: '',
-        whatsapp: data.whatsapp ? `${WHATSAPP_PREFIX}${data.whatsapp.trim()}` : `${WHATSAPP_PREFIX}${data.phone.trim()}`,
-        messenger: data.messenger ? `${MESSENGER_PREFIX}${data.messenger.trim()}` : '',
-        created_at: editData?.created_at || Date.now(),
-        updated_at: Date.now()
+        whatsapp: data.whatsapp ? `${WHATSAPP_PREFIX}${data.whatsapp}` : undefined,
+        messenger: data.messenger ? `${MESSENGER_PREFIX}${data.messenger}` : undefined,
+        status: 'active' as AgentStatus
       };
 
-      if (!agentData.name || !agentData.phone) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
-
-      if (editData?.id) {
-        await db.updateAgent(editData.id, agentData);
-        toast.success('Agent updated successfully');
+      if (editData) {
+        await db.updateAgent(editData.id, formattedData);
       } else {
-        await db.createAgent(agentData);
-        toast.success('Agent created successfully');
+        await db.createAgent(formattedData as Agent);
       }
 
+      toast.success(editData ? 'Agent updated successfully' : 'Agent created successfully');
       onSuccess?.();
-      onClose?.();
     } catch (error) {
-      console.error('Failed to save agent:', error);
-      toast.error('Failed to save agent');
+      console.error('Error saving agent:', error);
+      toast.error('Error saving agent');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div className="bg-[#1F1D1B] rounded-lg shadow-lg w-full max-w-xl mx-4">
-        <div className="p-6 border-b border-gray-700">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-[#FFB800]">
-              {editData ? 'Edit' : agentTypes[type].addTitle}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-[#1F1D1B] rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-[#FFB800]">
+              {editData ? 'Edit Agent' : agentTypes[type].addTitle}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-200 transition-colors"
+              className="text-gray-400 hover:text-white transition-colors"
             >
-              <X size={24} />
+              <X className="w-6 h-6" />
             </button>
           </div>
-        </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
-                Name <span className="text-red-500">*</span>
+                Name
               </label>
               <input
-                type="text"
-                {...register('name', { required: true })}
-                className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
+                {...register('name', { required: 'Name is required' })}
+                className="w-full px-3 py-2 bg-[#2A2826] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#FFB800]"
                 placeholder="Enter agent name"
               />
               {errors.name && (
-                <p className="mt-1 text-sm text-red-500">Name is required</p>
+                <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
-                Phone Number <span className="text-red-500">*</span>
+                Phone
               </label>
               <input
-                type="tel"
-                {...register('phone', { required: true })}
-                className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
+                {...register('phone', { required: 'Phone is required' })}
+                className="w-full px-3 py-2 bg-[#2A2826] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#FFB800]"
                 placeholder="Enter phone number"
               />
               {errors.phone && (
-                <p className="mt-1 text-sm text-red-500">Phone number is required</p>
+                <p className="mt-1 text-sm text-red-500">{errors.phone.message}</p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
-                WhatsApp Number
+                WhatsApp (Optional)
               </label>
               <input
-                type="tel"
                 {...register('whatsapp')}
-                className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
-                placeholder="Enter WhatsApp number (optional)"
+                className="w-full px-3 py-2 bg-[#2A2826] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#FFB800]"
+                placeholder="Enter WhatsApp number"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
-                Messenger Link
+                Messenger (Optional)
               </label>
               <input
-                type="text"
                 {...register('messenger')}
-                className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
-                placeholder="Enter Messenger link (optional)"
+                className="w-full px-3 py-2 bg-[#2A2826] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#FFB800]"
+                placeholder="Enter Messenger ID"
               />
             </div>
 
             {agentTypes[type].uplineType && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Upline Agent <span className="text-red-500">*</span>
+                  Upline {agentTypes[agentTypes[type].uplineType!].title}
                 </label>
                 <select
-                  {...register('upline_id', { required: true })}
-                  className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
+                  {...register('upline_id', { required: 'Upline is required' })}
+                  className="w-full px-3 py-2 bg-[#2A2826] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-[#FFB800]"
                 >
-                  <option value="">Select upline agent</option>
+                  <option value="">Select {agentTypes[agentTypes[type].uplineType!].title}</option>
                   {uplineAgents.map((agent) => (
                     <option key={agent.id} value={agent.id}>
-                      {agent.name} ({agent.agentId})
+                      {agent.name}
                     </option>
                   ))}
                 </select>
                 {errors.upline_id && (
-                  <p className="mt-1 text-sm text-red-500">Upline agent is required</p>
+                  <p className="mt-1 text-sm text-red-500">{errors.upline_id.message}</p>
                 )}
               </div>
             )}
-          </div>
 
-          <div className="flex justify-end space-x-4 pt-4 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-400 hover:text-gray-200 transition-colors"
-              disabled={isLoading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-6 py-2 bg-[#FFB800] text-black rounded-lg hover:bg-[#FF8A00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <span>{editData ? 'Update' : 'Create'}</span>
-              )}
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-4 py-2 bg-[#FFB800] hover:bg-[#FFA500] text-black font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50"
+              >
+                {isLoading ? 'Saving...' : editData ? 'Update Agent' : 'Create Agent'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
