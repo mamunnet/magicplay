@@ -1,4 +1,4 @@
-import { AgentType } from '../pages/AgentManagementPage';
+export type AgentType = 'admin' | 'super-agent' | 'master-agent' | 'super' | 'master';
 
 export type AgentStatus = 'active' | 'inactive' | 'on-mission';
 
@@ -28,6 +28,7 @@ export interface Agent {
   name: string;
   phone: string;
   whatsapp: string;
+  messenger: string;
   type: AgentType;
   role: string;
   status: AgentStatus;
@@ -45,9 +46,9 @@ export interface Agent {
 export interface AgentFormData {
   name: string;
   phone: string;
-  upline_id: string | null;
-  specialty: string;
-  experience: string;
-  type?: AgentType;
-  status?: AgentStatus;
+  whatsapp?: string;
+  messenger?: string;
+  upline_id?: string;
+  specialty?: string;
+  experience?: string;
 }

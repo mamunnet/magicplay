@@ -1,36 +1,37 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { Agent, AgentFormData, AgentStatus, AgentType } from '../types/agent';
+import { agentTypes } from '../constants/agents';
 import { db } from '../lib/db';
-import { agentTypes, AgentType } from '../pages/AgentManagementPage';
-import { Agent, AgentFormData, AgentStatus } from '../types/agent';
+import { MESSENGER_PREFIX, WHATSAPP_PREFIX } from '../constants';
+import { toast } from 'react-hot-toast';
 
 interface AgentFormProps {
   type: AgentType;
-  onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
+  onClose?: () => void;
   editData?: Agent;
 }
 
-export const AgentForm: React.FC<AgentFormProps> = ({ 
-  type, 
-  onClose, 
-  onSuccess, 
-  editData 
+export const AgentForm: React.FC<AgentFormProps> = ({
+  type,
+  onSuccess,
+  onClose,
+  editData
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [uplineAgents, setUplineAgents] = useState<Agent[]>([]);
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<AgentFormData>();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<AgentFormData>();
 
   useEffect(() => {
     if (editData) {
       reset({
         name: editData.name,
         phone: editData.phone,
-        upline_id: editData.upline_id,
-        specialty: editData.specialty,
-        experience: editData.experience
+        upline_id: editData.upline_id || undefined,
+        whatsapp: editData.whatsapp?.replace(WHATSAPP_PREFIX, '') || editData.phone || '',
+        messenger: editData.messenger?.replace(MESSENGER_PREFIX, '') || ''
       });
     }
   }, [editData, reset]);
@@ -38,7 +39,7 @@ export const AgentForm: React.FC<AgentFormProps> = ({
   useEffect(() => {
     const loadUplineAgents = async () => {
       if (agentTypes[type].uplineType) {
-        const agents = await db.getUplineAgents(agentTypes[type].uplineType);
+        const agents = await db.getUplineAgents(agentTypes[type].uplineType!);
         setUplineAgents(agents);
       }
     };
@@ -50,38 +51,37 @@ export const AgentForm: React.FC<AgentFormProps> = ({
     try {
       setIsLoading(true);
       
-      const agentData: Omit<Agent, 'id' | 'agentId' | 'whatsapp' | 'role' | 'rating' | 'actions' | 'avatar' | 'successRate'> = {
+      const agentData: Omit<Agent, 'id' | 'agentId' | 'role' | 'rating' | 'actions' | 'avatar' | 'successRate'> = {
         name: data.name.trim(),
         phone: data.phone.trim(),
         type,
         status: 'active' as AgentStatus,
-        upline_id: data.upline_id,
-        specialty: data.specialty || '',
-        experience: data.experience || '',
+        upline_id: data.upline_id || null,
+        specialty: '',
+        experience: '',
+        whatsapp: data.whatsapp ? `${WHATSAPP_PREFIX}${data.whatsapp.trim()}` : `${WHATSAPP_PREFIX}${data.phone.trim()}`,
+        messenger: data.messenger ? `${MESSENGER_PREFIX}${data.messenger.trim()}` : '',
         created_at: editData?.created_at || Date.now(),
         updated_at: Date.now()
       };
 
       if (!agentData.name || !agentData.phone) {
-        toast.error('Name and phone are required');
-        return;
-      }
-
-      if (agentTypes[type].uplineType && !data.upline_id) {
-        toast.error(`Please select an upline ${agentTypes[agentTypes[type].uplineType].title}`);
+        toast.error('Please fill in all required fields');
         return;
       }
 
       if (editData?.id) {
         await db.updateAgent(editData.id, agentData);
+        toast.success('Agent updated successfully');
       } else {
         await db.createAgent(agentData);
+        toast.success('Agent created successfully');
       }
-      
-      toast.success(`${agentTypes[type].title} ${editData ? 'updated' : 'added'} successfully`);
-      onSuccess();
+
+      onSuccess?.();
+      onClose?.();
     } catch (error) {
-      console.error('Error saving agent:', error);
+      console.error('Failed to save agent:', error);
       toast.error('Failed to save agent');
     } finally {
       setIsLoading(false);
@@ -89,99 +89,123 @@ export const AgentForm: React.FC<AgentFormProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-        >
-          <X size={20} />
-        </button>
-
-        <h2 className="text-xl font-semibold mb-4">
-          {editData ? 'Edit' : 'Add'} {agentTypes[type].title}
-        </h2>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              {...register('name', { required: true })}
-              type="text"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              placeholder="Enter name"
-            />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">Name is required</p>
-            )}
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div className="bg-[#1F1D1B] rounded-lg shadow-lg w-full max-w-xl mx-4">
+        <div className="p-6 border-b border-gray-700">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-[#FFB800]">
+              {editData ? 'Edit' : agentTypes[type].addTitle}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-200 transition-colors"
+            >
+              <X size={24} />
+            </button>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Phone</label>
-            <input
-              {...register('phone', { required: true })}
-              type="tel"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              placeholder="Enter phone number"
-            />
-            {errors.phone && (
-              <p className="mt-1 text-sm text-red-600">Phone is required</p>
-            )}
-          </div>
-
-          {agentTypes[type].uplineType && (
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Select {agentTypes[agentTypes[type].uplineType].title}
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Name <span className="text-red-500">*</span>
               </label>
-              <select
-                {...register('upline_id')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              >
-                <option value="">Select...</option>
-                {uplineAgents.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.name}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="text"
+                {...register('name', { required: true })}
+                className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
+                placeholder="Enter agent name"
+              />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-500">Name is required</p>
+              )}
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Specialty</label>
-            <input
-              {...register('specialty')}
-              type="text"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              placeholder="Enter specialty"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Phone Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                {...register('phone', { required: true })}
+                className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
+                placeholder="Enter phone number"
+              />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-500">Phone number is required</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                WhatsApp Number
+              </label>
+              <input
+                type="tel"
+                {...register('whatsapp')}
+                className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
+                placeholder="Enter WhatsApp number (optional)"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Messenger Link
+              </label>
+              <input
+                type="text"
+                {...register('messenger')}
+                className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
+                placeholder="Enter Messenger link (optional)"
+              />
+            </div>
+
+            {agentTypes[type].uplineType && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Upline Agent <span className="text-red-500">*</span>
+                </label>
+                <select
+                  {...register('upline_id', { required: true })}
+                  className="w-full px-4 py-2 rounded-lg bg-[#2A2725] border border-gray-700 text-gray-200 focus:outline-none focus:border-[#FFB800] transition-colors"
+                >
+                  <option value="">Select upline agent</option>
+                  {uplineAgents.map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.name} ({agent.agentId})
+                    </option>
+                  ))}
+                </select>
+                {errors.upline_id && (
+                  <p className="mt-1 text-sm text-red-500">Upline agent is required</p>
+                )}
+              </div>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Experience</label>
-            <input
-              {...register('experience')}
-              type="text"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              placeholder="Enter experience"
-            />
-          </div>
-
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end space-x-4 pt-4 border-t border-gray-700">
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="px-4 py-2 text-gray-400 hover:text-gray-200 transition-colors"
+              disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="px-6 py-2 bg-[#FFB800] text-black rounded-lg hover:bg-[#FF8A00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              {isLoading ? 'Saving...' : 'Save'}
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>{editData ? 'Update' : 'Create'}</span>
+              )}
             </button>
           </div>
         </form>

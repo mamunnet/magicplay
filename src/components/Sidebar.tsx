@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -17,29 +16,29 @@ const menuItems = [
     label: 'Dashboard'
   },
   {
-    path: '/magicplayadmin/agents/admin',
+    path: '/magicplayadmin/agents/master',
     icon: <Users size={20} />,
-    label: 'Admin'
-  },
-  {
-    path: '/magicplayadmin/agents/ss-admin',
-    icon: <Users size={20} />,
-    label: 'Senior Sub-Admin'
-  },
-  {
-    path: '/magicplayadmin/agents/sub-admin',
-    icon: <Users size={20} />,
-    label: 'Sub-Admin'
+    label: 'Admin Management'
   },
   {
     path: '/magicplayadmin/agents/super',
     icon: <Users size={20} />,
-    label: 'Super Agent'
+    label: 'Senior Sub Admin Management'
   },
   {
-    path: '/magicplayadmin/agents/master',
+    path: '/magicplayadmin/agents/admin',
     icon: <Users size={20} />,
-    label: 'Master Agent'
+    label: 'Sub Admin Management'
+  },
+  {
+    path: '/magicplayadmin/agents/super-agent',
+    icon: <Users size={20} />,
+    label: 'Super Agent Management'
+  },
+  {
+    path: '/magicplayadmin/agents/master-agent',
+    icon: <Users size={20} />,
+    label: 'Master Agent Management'
   },
   {
     path: '/magicplayadmin/notices',
