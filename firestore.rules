@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'mariawebtech.contact@gmail.com';
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Validation functions
+    function isValidAgent() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['name', 'phone', 'role', 'agentId', 'rating', 'status', 'createdAt']) &&
+             data.name is string &&
+             data.phone is string &&
+             data.role is string &&
+             data.agentId is string &&
+             data.rating is number &&
+             data.status is string &&
+             data.createdAt is number;
+    }
+
+    function isValidNotice() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['title', 'content', 'priority', 'isActive', 'createdAt']) &&
+             data.title is string &&
+             data.content is string &&
+             data.priority in ['high', 'medium', 'low'] &&
+             data.isActive is bool &&
+             data.createdAt is number;
+    }
+
+    // Allow read access to authenticated users
+    match /{document=**} {
+      allow read: if isAuthenticated();
+    }
+
+    // Agents collection
+    match /agents/{agentId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Notices collection
+    match /notices/{noticeId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Reports collection
+    match /reports/{reportId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
