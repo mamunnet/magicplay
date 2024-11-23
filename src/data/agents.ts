@@ -2,53 +2,83 @@ import { Agent } from '../types';
 
 export const agents: Agent[] = [
   {
-    id: 1,
+    id: "1",
     name: "Sarah Mitchell",
     role: "Field Operative",
+    agentId: "FO-001",
+    whatsapp: "1234567890",
+    phone: "+1234567890",
+    rating: 5,
+    actions: ["edit", "delete"],
     specialty: "Infiltration",
-    experience: 8,
+    experience: "8 years",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
     status: "active",
-    successRate: 94
+    successRate: "94",
+    created_at: "2024-03-15T10:30:00"
   },
   {
-    id: 2,
+    id: "2",
     name: "James Chen",
     role: "Intelligence Analyst",
+    agentId: "IA-002",
+    whatsapp: "1234567891",
+    phone: "+1234567891",
+    rating: 4,
+    actions: ["edit", "delete"],
     specialty: "Cyber Security",
-    experience: 5,
+    experience: "5 years",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
     status: "on-mission",
-    successRate: 88
+    successRate: "88",
+    created_at: "2024-03-15T09:45:00"
   },
   {
-    id: 3,
+    id: "3",
     name: "Elena Rodriguez",
     role: "Tactical Specialist",
+    agentId: "TS-003",
+    whatsapp: "1234567892",
+    phone: "+1234567892",
+    rating: 5,
+    actions: ["edit", "delete"],
     specialty: "Close Combat",
-    experience: 12,
+    experience: "12 years",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
     status: "active",
-    successRate: 97
+    successRate: "97",
+    created_at: "2024-03-15T08:15:00"
   },
   {
-    id: 4,
+    id: "4",
     name: "Marcus Johnson",
     role: "Communications Expert",
+    agentId: "CE-004",
+    whatsapp: "1234567893",
+    phone: "+1234567893",
+    rating: 4,
+    actions: ["edit", "delete"],
     specialty: "Signal Intelligence",
-    experience: 6,
+    experience: "6 years",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
     status: "inactive",
-    successRate: 85
+    successRate: "85",
+    created_at: "2024-03-15T11:20:00"
   },
   {
-    id: 5,
+    id: "5",
     name: "Sophia Williams",
     role: "Strategic Commander",
+    agentId: "SC-005",
+    whatsapp: "1234567894",
+    phone: "+1234567894",
+    rating: 5,
+    actions: ["edit", "delete"],
     specialty: "Mission Planning",
-    experience: 15,
+    experience: "15 years",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
     status: "active",
-    successRate: 96
+    successRate: "96",
+    created_at: "2024-03-15T10:00:00"
   }
 ];

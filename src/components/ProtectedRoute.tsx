@@ -11,13 +11,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   requireAdmin = false 
 }) => {
-  const { user, isAdmin, isLoading } = useAuthStore();
+  const { user, isAdmin, isLoading, isHydrated } = useAuthStore();
   const location = useLocation();
 
-  if (isLoading) {
+  // Show loading state only if we're not hydrated yet or explicitly loading
+  if (!isHydrated || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#111827]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#111827] text-white">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+          <p className="text-lg">Loading...</p>
+        </div>
       </div>
     );
   }

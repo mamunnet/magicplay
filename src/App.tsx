@@ -14,20 +14,27 @@ import { Toaster } from 'react-hot-toast';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-[#111827]">
+      <div className="min-h-screen bg-[#111827] text-white">
         <Routes>
+          {/* Public login route */}
           <Route path="/magicplayadmin/login" element={<LoginPage />} />
+          
+          {/* Protected admin routes */}
           <Route path="/magicplayadmin/*" element={
             <ProtectedRoute requireAdmin>
-              <Routes>
-                <Route path="/" element={<AdminDashboard />} />
-                <Route path="/notices" element={<NoticePage />} />
-                <Route path="/agents/:type" element={<AgentManagementPage />} />
-              </Routes>
+              <div className="min-h-screen bg-[#111827]">
+                <Routes>
+                  <Route path="/" element={<AdminDashboard />} />
+                  <Route path="/notices" element={<NoticePage />} />
+                  <Route path="/agents/:type" element={<AgentManagementPage />} />
+                </Routes>
+              </div>
             </ProtectedRoute>
           } />
+          
+          {/* Public routes with main layout */}
           <Route path="/*" element={
-            <>
+            <div className="min-h-screen bg-[#111827]">
               <Navbar />
               <Header />
               <div className="container mx-auto px-4 py-8 relative z-10 -mt-16">
@@ -36,7 +43,7 @@ function App() {
                   <Route path="/agents/:type" element={<AgentList />} />
                 </Routes>
               </div>
-            </>
+            </div>
           } />
         </Routes>
         <Toaster position="top-right" />

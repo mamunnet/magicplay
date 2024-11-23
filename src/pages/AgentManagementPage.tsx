@@ -7,7 +7,7 @@ import { AdminNavbar } from '../components/AdminNavbar';
 import { Sidebar } from '../components/Sidebar';
 import { AgentTable } from '../components/AgentTable';
 import { AgentForm } from '../components/AgentForm';
-import { Agent } from '../types/agent';
+import { Agent } from '../types';
 
 // Define agent types and their hierarchy
 export type AgentType = 'admin' | 'ss-admin' | 'sub-admin' | 'super' | 'master';
@@ -75,11 +75,28 @@ export const AgentManagementPage = () => {
       try {
         await db.deleteAgent(agentId);
         toast.success('Agent deleted successfully');
-        fetchAgents();
-      } catch (error) {
+        await fetchAgents(); // Refresh the list after deletion
+      } catch (error: any) {
         console.error('Error deleting agent:', error);
-        toast.error('Failed to delete agent');
+        toast.error(error.message || 'Failed to delete agent');
       }
+    }
+  };
+
+  const handleEdit = (agent: Agent) => {
+    setEditData(agent);
+    setShowForm(true);
+  };
+
+  const handleFormSuccess = async () => {
+    try {
+      await fetchAgents(); // Refresh the list after edit/create
+      setShowForm(false);
+      setEditData(undefined);
+      toast.success(editData ? 'Agent updated successfully' : 'Agent created successfully');
+    } catch (error: any) {
+      console.error('Error refreshing agents:', error);
+      toast.error(error.message || 'Failed to refresh agent list');
     }
   };
 
@@ -94,7 +111,10 @@ export const AgentManagementPage = () => {
             {currentAgentType.title} Management
           </h1>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setEditData(undefined); // Clear any existing edit data
+              setShowForm(true);
+            }}
             className="px-4 py-2 bg-[#FFB800] hover:bg-[#FF8A00] text-black font-medium rounded-lg transition-colors flex items-center space-x-2"
           >
             <Plus size={20} />
@@ -111,10 +131,7 @@ export const AgentManagementPage = () => {
             <AgentTable
               agents={agents}
               onDelete={handleDelete}
-              onEdit={(agent) => {
-                setEditData(agent);
-                setShowForm(true);
-              }}
+              onEdit={handleEdit}
             />
           </div>
         )}
@@ -126,11 +143,7 @@ export const AgentManagementPage = () => {
               setShowForm(false);
               setEditData(undefined);
             }}
-            onSuccess={() => {
-              fetchAgents();
-              setShowForm(false);
-              setEditData(undefined);
-            }}
+            onSuccess={handleFormSuccess}
             editData={editData}
           />
         )}

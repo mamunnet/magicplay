@@ -1,65 +1,82 @@
 import React from 'react';
-import { Shield, Target, Award, MessageCircle } from 'lucide-react';
 import { Agent } from '../types';
+import { Star, Phone, Mail, Clock } from 'lucide-react';
 
 interface AgentCardProps {
   agent: Agent;
 }
 
 const statusColors = {
-  'active': 'bg-emerald-500',
-  'inactive': 'bg-gray-500',
-  'on-mission': 'bg-yellow-500'
+  'active': 'text-green-500',
+  'inactive': 'text-red-500',
+  'on-mission': 'text-blue-500'
 };
 
-const statusText = {
-  'active': 'Active',
-  'inactive': 'Inactive',
-  'on-mission': 'On Mission'
+const statusBgColors = {
+  'active': 'bg-green-500/20',
+  'inactive': 'bg-red-500/20',
+  'on-mission': 'bg-blue-500/20'
 };
 
 export const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
   return (
-    <div className="bg-[#1a1f2e] rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl border border-gray-800">
-      <div className="relative mb-4">
-        <img
-          src={agent.avatar}
-          alt={agent.name}
-          className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-gray-800"
-        />
-        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-          <span className={`px-3 py-1 rounded-full text-xs ${statusColors[agent.status]} text-white`}>
-            {statusText[agent.status]}
-          </span>
-        </div>
-      </div>
-      
-      <div className="text-center mb-6">
-        <h3 className="text-xl font-bold text-white mb-1">{agent.name}</h3>
-        <p className="text-emerald-500 font-medium">{agent.role}</p>
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex items-center text-gray-300 bg-[#151b2e] p-2 rounded-lg">
-          <Shield className="w-5 h-5 mr-2 text-emerald-500" />
-          <span className="text-sm">{agent.specialty}</span>
-        </div>
-        
-        <div className="flex items-center text-gray-300 bg-[#151b2e] p-2 rounded-lg">
-          <Target className="w-5 h-5 mr-2 text-emerald-500" />
-          <span className="text-sm">{agent.experience} years experience</span>
-        </div>
-
-        <div className="flex items-center text-gray-300 bg-[#151b2e] p-2 rounded-lg">
-          <Award className="w-5 h-5 mr-2 text-emerald-500" />
-          <span className="text-sm">{agent.successRate}% success rate</span>
+    <div className="bg-[#1a1f2e] rounded-xl p-6 hover:shadow-xl transition-all border border-gray-800">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-4">
+          <img
+            src={agent.avatar}
+            alt={agent.name}
+            className="w-12 h-12 rounded-full object-cover border-2 border-gray-700"
+          />
+          <div>
+            <h3 className="text-lg font-semibold text-white">{agent.name}</h3>
+            <div className={`px-3 py-1 rounded-full text-xs ${statusBgColors[agent.status]} ${statusColors[agent.status]}`}>
+              {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
+            </div>
+          </div>
         </div>
       </div>
 
-      <button className="w-full mt-6 bg-emerald-500 text-white py-2.5 rounded-lg flex items-center justify-center space-x-2 hover:bg-emerald-600 transition-colors">
-        <MessageCircle size={18} />
-        <span>Contact Agent</span>
-      </button>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-[#151b2e] p-3 rounded-lg">
+          <div className="flex items-center text-gray-400 mb-1">
+            <Star className="w-4 h-4 mr-2" />
+            <span className="text-sm">Specialty</span>
+          </div>
+          <div className="text-white font-medium">{agent.specialty}</div>
+        </div>
+        <div className="bg-[#151b2e] p-3 rounded-lg">
+          <div className="flex items-center text-gray-400 mb-1">
+            <Clock className="w-4 h-4 mr-2" />
+            <span className="text-sm">Experience</span>
+          </div>
+          <div className="text-white font-medium">{agent.experience}</div>
+        </div>
+      </div>
+
+      <div className="bg-[#151b2e] p-4 rounded-lg mb-4">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400">Success Rate</span>
+          <span className="text-white font-medium">{agent.successRate}%</span>
+        </div>
+        <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+          <div
+            className="bg-green-500 h-2 rounded-full"
+            style={{ width: `${agent.successRate}%` }}
+          ></div>
+        </div>
+      </div>
+
+      <div className="flex space-x-4">
+        <button className="flex-1 bg-[#151b2e] text-white py-2 rounded-lg hover:bg-[#1f2b47] transition-colors">
+          <Phone className="w-4 h-4 inline-block mr-2" />
+          Contact
+        </button>
+        <button className="flex-1 bg-[#151b2e] text-white py-2 rounded-lg hover:bg-[#1f2b47] transition-colors">
+          <Mail className="w-4 h-4 inline-block mr-2" />
+          Message
+        </button>
+      </div>
     </div>
   );
 };

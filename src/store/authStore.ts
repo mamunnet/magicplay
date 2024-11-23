@@ -11,18 +11,10 @@ interface AuthState {
   isAdmin: boolean;
   isLoading: boolean;
   error: string | null;
+  isHydrated: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
   clearError: () => void;
-}
-
-// Get environment variables
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
-
-// Validate environment variables
-if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-  console.error('Admin credentials not properly configured in environment variables');
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -32,53 +24,42 @@ export const useAuthStore = create<AuthState>()(
       isAdmin: false,
       isLoading: false,
       error: null,
+      isHydrated: false,
       
       signIn: async (email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });
-          
-          // Debug environment variables and credentials
-          console.log('Auth Debug:', {
-            adminEmailSet: !!ADMIN_EMAIL,
-            adminPasswordSet: !!ADMIN_PASSWORD,
-            providedEmail: email,
-            emailMatch: email === ADMIN_EMAIL,
-            providedPasswordLength: password?.length,
-            expectedPasswordLength: ADMIN_PASSWORD?.length,
-            providedPassword: password,
-            expectedPassword: ADMIN_PASSWORD,
-            passwordsMatch: password === ADMIN_PASSWORD
-          });
 
-          if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-            throw new Error('Admin credentials not properly configured');
-          }
+          // Hardcoded credentials for development
+          const validEmail = 'mariawebtech.contact@gmail.com';
+          const validPassword = 'Mamunnet@#13';
 
-          // Only allow specific admin email
-          if (email !== ADMIN_EMAIL) {
+          if (email.trim().toLowerCase() !== validEmail.toLowerCase()) {
             throw new Error('Invalid email address');
           }
 
-          // Check password (exact match, no trimming)
-          if (password !== ADMIN_PASSWORD) {
+          if (password !== validPassword) {
             throw new Error('Invalid password');
           }
 
+          const user = { email, isAdmin: true };
+          
+          // Set user data and admin status
           set({ 
-            user: { email, isAdmin: true },
+            user,
             isAdmin: true,
             isLoading: false,
-            error: null
+            error: null,
+            isHydrated: true
           });
 
-          console.log('Login successful');
         } catch (error: any) {
-          console.error('Login error:', error);
           set({ 
-            error: error.message,
-            isLoading: false,
             user: null,
-            isAdmin: false
+            isAdmin: false,
+            isLoading: false,
+            error: error.message,
+            isHydrated: true
           });
           throw error;
         }
@@ -86,10 +67,10 @@ export const useAuthStore = create<AuthState>()(
 
       signOut: () => {
         set({ 
-          user: null,
-          isAdmin: false,
-          isLoading: false,
-          error: null
+          user: null, 
+          isAdmin: false, 
+          error: null,
+          isHydrated: true
         });
       },
 
@@ -99,9 +80,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         user: state.user,
-        isAdmin: state.isAdmin
+        isAdmin: state.isAdmin,
+        isHydrated: true
       })
     }
   )

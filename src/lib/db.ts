@@ -1,250 +1,335 @@
 import { createClient } from '@libsql/client';
-import { Agent, AgentFormData } from '../types/agent';
+import type { Agent, AgentFormData, AgentStatus } from '../types/agent';
+import type { Notice, NoticeFormData } from '../types/notice';
+import { AgentType } from '../pages/AgentManagementPage';
+import { agentTypes } from '../pages/AgentManagementPage';
 
-interface Notice {
-  id: string;
-  title: string;
-  content: string;
-  priority: 'high' | 'medium' | 'low';
-  isActive: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface NoticeFormData {
-  title: string;
-  content: string;
-  priority: 'high' | 'medium' | 'low';
-  isActive: boolean;
-}
-
-const TURSO_URL = import.meta.env.VITE_TURSO_DATABASE_URL;
-const TURSO_TOKEN = import.meta.env.VITE_TURSO_AUTH_TOKEN;
-
-// Validate environment variables
-if (!TURSO_URL || !TURSO_TOKEN) {
-  console.error('Missing Turso credentials:', {
-    hasUrl: !!TURSO_URL,
-    hasToken: !!TURSO_TOKEN
-  });
-  throw new Error('Database configuration missing');
-}
-
-console.log('Initializing Turso client with URL:', TURSO_URL);
-
-// Create client with retries
 const client = createClient({
-  url: TURSO_URL,
-  authToken: TURSO_TOKEN,
+  url: import.meta.env.VITE_TURSO_DATABASE_URL as string,
+  authToken: import.meta.env.VITE_TURSO_AUTH_TOKEN as string,
 });
 
-// Create tables if they don't exist
-async function initializeDatabase() {
-  try {
-    console.log('Testing database connection...');
-    
-    // Test connection first
-    await client.execute('SELECT 1');
-    
-    console.log('Database connection successful, creating tables...');
-    
-    // Create tables
-    await client.execute(`
-      CREATE TABLE IF NOT EXISTS agents (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        type TEXT NOT NULL,
-        status TEXT NOT NULL,
-        upline_id TEXT,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      )
-    `);
+class Database {
+  private static instance: Database;
+  private initialized = false;
 
-    await client.execute(`
-      CREATE TABLE IF NOT EXISTS notices (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        content TEXT NOT NULL,
-        priority TEXT NOT NULL,
-        is_active BOOLEAN NOT NULL,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      )
-    `);
+  private constructor() {}
 
-    console.log('Database initialized successfully');
-  } catch (error: any) {
-    console.error('Database initialization error:', {
-      message: error.message,
-      cause: error.cause,
-      stack: error.stack
-    });
-    throw error;
+  public static getInstance(): Database {
+    if (!Database.instance) {
+      Database.instance = new Database();
+    }
+    return Database.instance;
   }
-}
 
-// Initialize database
-initializeDatabase().catch(error => {
-  console.error('Failed to initialize database:', error);
-});
+  private async initialize() {
+    if (this.initialized) return;
+    try {
+      // Test connection
+      await client.execute('SELECT 1');
 
-export const db = {
-  // Agent-related functions
-  async getAgents(type: string): Promise<Agent[]> {
-    const result = await client.execute({
-      sql: "SELECT * FROM agents WHERE type = ? ORDER BY created_at DESC",
-      args: [type]
-    });
-    
-    return result.rows.map(row => ({
-      id: row.id as string,
-      name: row.name as string,
-      phone: row.phone as string,
-      type: row.type as string,
-      status: row.status as string,
-      uplineId: row.upline_id as string | undefined,
-      createdAt: row.created_at as number,
-      updatedAt: row.updated_at as number
-    }));
-  },
+      // Add rating column if it doesn't exist
+      try {
+        await client.execute(`
+          ALTER TABLE agents ADD COLUMN rating INTEGER DEFAULT 5;
+        `);
+      } catch (error) {
+        // Column might already exist, ignore the error
+        console.log('Rating column might already exist');
+      }
 
-  async createAgent(data: AgentFormData): Promise<Agent> {
-    const now = Date.now();
-    const id = crypto.randomUUID();
-    
-    await client.execute({
-      sql: `
-        INSERT INTO agents (id, name, phone, type, status, upline_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      args: [id, data.name, data.phone, data.type, data.status, data.uplineId || null, now, now]
-    });
+      this.initialized = true;
+    } catch (error) {
+      console.error('Database initialization error:', error);
+      throw error;
+    }
+  }
 
-    return {
-      id,
-      ...data,
-      createdAt: now,
-      updatedAt: now
-    };
-  },
+  async getAgents(type: AgentType): Promise<Agent[]> {
+    await this.initialize();
+    try {
+      const result = await client.execute({
+        sql: 'SELECT * FROM agents WHERE type = ? ORDER BY created_at DESC',
+        args: [type]
+      });
+      
+      return result.rows.map(row => ({
+        id: String(row.id),
+        agentId: String(row.id),
+        name: String(row.name),
+        phone: String(row.phone),
+        whatsapp: String(row.phone),
+        type: row.type as AgentType,
+        role: agentTypes[row.type as AgentType].title,
+        status: (row.status || 'inactive') as AgentStatus,
+        rating: Number(row.rating ?? 5),
+        upline_id: row.upline_id ? String(row.upline_id) : null,
+        created_at: Number(row.created_at),
+        updated_at: Number(row.updated_at),
+        actions: ['edit', 'delete'],
+        avatar: row.avatar ? String(row.avatar) : '',
+        specialty: row.specialty ? String(row.specialty) : '',
+        experience: row.experience ? String(row.experience) : '',
+        successRate: String(row.success_rate ?? '100%')
+      }));
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+      throw error;
+    }
+  }
 
-  async updateAgent(id: string, data: Partial<AgentFormData>): Promise<void> {
-    const updates = Object.entries(data)
-      .filter(([_, value]) => value !== undefined)
-      .map(([key, _]) => `${key === 'uplineId' ? 'upline_id' : key} = ?`);
-    
-    if (updates.length === 0) return;
+  async getUplineAgents(type: AgentType): Promise<Agent[]> {
+    await this.initialize();
+    try {
+      const result = await client.execute({
+        sql: 'SELECT * FROM agents WHERE type = ? ORDER BY created_at DESC',
+        args: [type]
+      });
 
-    const values = Object.entries(data)
-      .filter(([_, value]) => value !== undefined)
-      .map(([_, value]) => value);
+      return result.rows.map(row => ({
+        id: String(row.id),
+        agentId: String(row.id),
+        name: String(row.name),
+        phone: String(row.phone),
+        whatsapp: String(row.phone),
+        type: row.type as AgentType,
+        role: agentTypes[row.type as AgentType].title,
+        status: (row.status || 'inactive') as AgentStatus,
+        rating: Number(row.rating ?? 5),
+        upline_id: row.upline_id ? String(row.upline_id) : null,
+        created_at: Number(row.created_at),
+        updated_at: Number(row.updated_at),
+        actions: ['edit', 'delete'],
+        avatar: row.avatar ? String(row.avatar) : '',
+        specialty: row.specialty ? String(row.specialty) : '',
+        experience: row.experience ? String(row.experience) : '',
+        successRate: String(row.success_rate ?? '100%')
+      }));
+    } catch (error) {
+      console.error('Error fetching upline agents:', error);
+      throw error;
+    }
+  }
 
-    await client.execute({
-      sql: `
-        UPDATE agents 
-        SET ${updates.join(', ')}, updated_at = ?
-        WHERE id = ?
-      `,
-      args: [...values, Date.now(), id]
-    });
-  },
+  async createAgent(data: AgentFormData & { type: AgentType; status: AgentStatus }): Promise<Agent> {
+    await this.initialize();
+    try {
+      const now = Date.now();
+      const id = crypto.randomUUID();
+
+      const insertData = {
+        id,
+        name: data.name,
+        phone: data.phone,
+        type: data.type,
+        status: data.status,
+        rating: 5,
+        upline_id: data.upline_id || null,
+        specialty: data.specialty || '',
+        experience: data.experience || '',
+        created_at: now,
+        updated_at: now,
+        success_rate: '100%'
+      };
+
+      const fields = Object.keys(insertData);
+      const placeholders = fields.map(() => '?').join(', ');
+      const values = Object.values(insertData);
+
+      await client.execute({
+        sql: `INSERT INTO agents (${fields.join(', ')}) VALUES (${placeholders})`,
+        args: values
+      });
+      
+      return {
+        id,
+        agentId: id,
+        name: data.name,
+        phone: data.phone,
+        whatsapp: data.phone,
+        type: data.type,
+        role: agentTypes[data.type].title,
+        status: data.status,
+        rating: 5,
+        upline_id: data.upline_id || null,
+        created_at: now,
+        updated_at: now,
+        actions: ['edit', 'delete'],
+        avatar: '',
+        specialty: data.specialty || '',
+        experience: data.experience || '',
+        successRate: '100%'
+      };
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      throw error;
+    }
+  }
+
+  async updateAgent(id: string, data: Partial<Agent>): Promise<void> {
+    await this.initialize();
+    try {
+      const agent = await client.execute({
+        sql: 'SELECT id FROM agents WHERE id = ?',
+        args: [id]
+      });
+
+      if (agent.rows.length === 0) {
+        throw new Error('Agent not found');
+      }
+
+      // Filter out non-database fields
+      const { actions, agentId, role, ...dbData } = data;
+
+      const updates = Object.entries(dbData)
+        .filter(([key, value]) => 
+          value !== undefined && 
+          key !== 'id' && 
+          key !== 'created_at'
+        )
+        .map(([key]) => {
+          const dbKey = key === 'upline_id' ? 'upline_id' :
+                       key === 'success_rate' ? 'success_rate' : key;
+          return `${dbKey} = ?`;
+        });
+      
+      if (updates.length === 0) return;
+      
+      const values = Object.entries(dbData)
+        .filter(([key, value]) => 
+          value !== undefined && 
+          key !== 'id' && 
+          key !== 'created_at'
+        )
+        .map(([_, value]) => value);
+      
+      await client.execute({
+        sql: `UPDATE agents 
+              SET ${updates.join(', ')}, updated_at = ?
+              WHERE id = ?`,
+        args: [...values, Date.now(), id]
+      });
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      throw error;
+    }
+  }
 
   async deleteAgent(id: string): Promise<void> {
-    await client.execute({
-      sql: "DELETE FROM agents WHERE id = ?",
-      args: [id]
-    });
-  },
+    await this.initialize();
+    try {
+      // First check if agent exists and if they have any downlines
+      const [agent, downlines] = await Promise.all([
+        client.execute({
+          sql: 'SELECT id FROM agents WHERE id = ?',
+          args: [id]
+        }),
+        client.execute({
+          sql: 'SELECT id FROM agents WHERE upline_id = ?',
+          args: [id]
+        })
+      ]);
 
-  async getUplineAgents(type: string): Promise<Agent[]> {
-    const uplineType = type === 'master' ? 'super' :
-                      type === 'super' ? 'sub-admin' :
-                      type === 'sub-admin' ? 'ss-admin' :
-                      type === 'ss-admin' ? 'admin' : null;
-    
-    if (!uplineType) return [];
+      if (agent.rows.length === 0) {
+        throw new Error('Agent not found');
+      }
 
-    const result = await client.execute({
-      sql: "SELECT * FROM agents WHERE type = ? ORDER BY name ASC",
-      args: [uplineType]
-    });
-    
-    return result.rows.map(row => ({
-      id: row.id as string,
-      name: row.name as string,
-      phone: row.phone as string,
-      type: row.type as string,
-      status: row.status as string,
-      uplineId: row.upline_id as string | undefined,
-      createdAt: row.created_at as number,
-      updatedAt: row.updated_at as number
-    }));
-  },
+      if (downlines.rows.length > 0) {
+        throw new Error('Cannot delete agent with active downlines');
+      }
 
-  // Notice-related functions
+      await client.execute({
+        sql: 'DELETE FROM agents WHERE id = ?',
+        args: [id]
+      });
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      throw error;
+    }
+  }
+
   async getNotices(): Promise<Notice[]> {
-    const result = await client.execute({
-      sql: "SELECT * FROM notices ORDER BY created_at DESC"
-    });
-    
-    return result.rows.map(row => ({
-      id: row.id as string,
-      title: row.title as string,
-      content: row.content as string,
-      priority: row.priority as 'high' | 'medium' | 'low',
-      isActive: Boolean(row.is_active),
-      createdAt: row.created_at as number,
-      updatedAt: row.updated_at as number
-    }));
-  },
+    await this.initialize();
+    try {
+      const result = await client.execute('SELECT * FROM notices ORDER BY created_at DESC');
+      return result.rows.map(row => ({
+        id: String(row.id),
+        title: String(row.title),
+        content: String(row.content),
+        priority: String(row.priority) as 'high' | 'medium' | 'low',
+        isActive: Boolean(row.is_active),
+        createdAt: Number(row.created_at),
+        updatedAt: Number(row.updated_at)
+      }));
+    } catch (error) {
+      console.error('Error fetching notices:', error);
+      throw error;
+    }
+  }
 
   async createNotice(data: NoticeFormData): Promise<Notice> {
-    const now = Date.now();
-    const id = crypto.randomUUID();
-    
-    await client.execute({
-      sql: `
-        INSERT INTO notices (id, title, content, priority, is_active, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `,
-      args: [id, data.title, data.content, data.priority, data.isActive ? 1 : 0, now, now]
-    });
+    await this.initialize();
+    try {
+      const now = Date.now();
+      const id = crypto.randomUUID();
 
-    return {
-      id,
-      ...data,
-      createdAt: now,
-      updatedAt: now
-    };
-  },
+      await client.execute({
+        sql: 'INSERT INTO notices (id, title, content, priority, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        args: [id, data.title, data.content, data.priority, data.isActive, now, now]
+      });
+
+      return {
+        id,
+        title: data.title,
+        content: data.content,
+        priority: data.priority,
+        isActive: data.isActive,
+        createdAt: now,
+        updatedAt: now
+      };
+    } catch (error) {
+      console.error('Error creating notice:', error);
+      throw error;
+    }
+  }
 
   async updateNotice(id: string, data: Partial<NoticeFormData>): Promise<void> {
-    const updates = Object.entries(data)
-      .filter(([_, value]) => value !== undefined)
-      .map(([key, _]) => `${key === 'isActive' ? 'is_active' : key} = ?`);
-    
-    if (updates.length === 0) return;
-
-    const values = Object.entries(data)
-      .filter(([_, value]) => value !== undefined)
-      .map(([key, value]) => key === 'isActive' ? (value ? 1 : 0) : value);
-
-    await client.execute({
-      sql: `
-        UPDATE notices 
-        SET ${updates.join(', ')}, updated_at = ?
-        WHERE id = ?
-      `,
-      args: [...values, Date.now(), id]
-    });
-  },
+    await this.initialize();
+    try {
+      const updates = Object.entries(data)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key, _]) => `${key === 'isActive' ? 'is_active' : key} = ?`);
+      
+      if (updates.length === 0) return;
+      
+      const values = Object.entries(data)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key, value]) => key === 'isActive' ? (value ? 1 : 0) : value);
+      
+      await client.execute({
+        sql: `UPDATE notices 
+               SET ${updates.join(', ')}, updated_at = ?
+               WHERE id = ?`,
+        args: [...values, Date.now(), id]
+      });
+    } catch (error) {
+      console.error('Error updating notice:', error);
+      throw error;
+    }
+  }
 
   async deleteNotice(id: string): Promise<void> {
-    await client.execute({
-      sql: "DELETE FROM notices WHERE id = ?",
-      args: [id]
-    });
+    await this.initialize();
+    try {
+      await client.execute({
+        sql: 'DELETE FROM notices WHERE id = ?',
+        args: [id]
+      });
+    } catch (error) {
+      console.error('Error deleting notice:', error);
+      throw error;
+    }
   }
-};
+}
+
+export const db = Database.getInstance();

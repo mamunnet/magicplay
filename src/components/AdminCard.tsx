@@ -3,7 +3,10 @@ import { Users, Wallet, Clock, ChevronRight } from 'lucide-react';
 import { AdminUser } from '../types';
 
 interface AdminCardProps {
-  admin: AdminUser;
+  admin: AdminUser & {
+    totalUsers?: number;
+    balance?: string;
+  };
 }
 
 const roleColors = {
@@ -12,7 +15,7 @@ const roleColors = {
   'sub-admin': 'text-green-500',
   'super-agent': 'text-yellow-500',
   'master-agent': 'text-red-500'
-};
+} as const;
 
 const roleNames = {
   'admin': 'Admin',
@@ -20,7 +23,7 @@ const roleNames = {
   'sub-admin': 'Sub Admin',
   'super-agent': 'Super Agent',
   'master-agent': 'Master Agent'
-};
+} as const;
 
 export const AdminCard: React.FC<AdminCardProps> = ({ admin }) => {
   return (
@@ -46,35 +49,33 @@ export const AdminCard: React.FC<AdminCardProps> = ({ admin }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-[#151b2e] p-3 rounded-lg">
           <div className="flex items-center text-gray-400 mb-1">
-            <Users size={14} className="mr-1" />
-            <span className="text-xs">Total Users</span>
+            <Users className="w-4 h-4 mr-2" />
+            <span className="text-sm">Total Users</span>
           </div>
-          <span className="text-white font-semibold">{admin.totalUsers?.toLocaleString()}</span>
+          <div className="text-white font-medium">{admin.totalUsers || 0}</div>
         </div>
-        
         <div className="bg-[#151b2e] p-3 rounded-lg">
           <div className="flex items-center text-gray-400 mb-1">
-            <Wallet size={14} className="mr-1" />
-            <span className="text-xs">Balance</span>
+            <Wallet className="w-4 h-4 mr-2" />
+            <span className="text-sm">Balance</span>
           </div>
-          <span className="text-white font-semibold">
-            ৳{admin.balance.toLocaleString()}
-          </span>
+          <div className="text-white font-medium">₹{admin.balance || '0'}</div>
+        </div>
+        <div className="bg-[#151b2e] p-3 rounded-lg">
+          <div className="flex items-center text-gray-400 mb-1">
+            <Clock className="w-4 h-4 mr-2" />
+            <span className="text-sm">Last Active</span>
+          </div>
+          <div className="text-white font-medium">{admin.lastActive}</div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center text-gray-400">
-          <Clock size={14} className="mr-1" />
-          <span>Last active: {new Date(admin.lastActive).toLocaleTimeString()}</span>
-        </div>
-        <button className="flex items-center text-emerald-500 hover:text-emerald-400 transition-colors">
-          <span className="mr-1">Details</span>
-          <ChevronRight size={16} />
-        </button>
+      <div className="flex items-center justify-between text-gray-400 hover:text-white transition-colors cursor-pointer">
+        <span>View Details</span>
+        <ChevronRight className="w-5 h-5" />
       </div>
     </div>
   );

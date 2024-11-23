@@ -4,17 +4,23 @@ import { Sidebar } from '../components/Sidebar';
 import { 
   Users, 
   Activity, 
-  Database, 
-  Settings,
-  TrendingUp,
+  Bell,
   UserCheck,
-  AlertTriangle,
-  Bell
+  LucideIcon
 } from 'lucide-react';
 import { db } from '../lib/db';
 import toast from 'react-hot-toast';
+import { AgentType } from '../types';
 
-const StatCard = ({ title, value, description, icon: Icon, color }) => (
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  description: string;
+  icon: LucideIcon;
+  color: string;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, description, icon: Icon, color }) => (
   <div className="bg-[#1F1D1B] p-6 rounded-xl border border-[#FFB800]/10 hover:border-[#FFB800]/30 transition-all">
     <div className="flex items-center justify-between mb-4">
       <div>
@@ -29,12 +35,22 @@ const StatCard = ({ title, value, description, icon: Icon, color }) => (
   </div>
 );
 
-const RecentActivity = ({ activity }) => (
+interface ActivityItem {
+  message: string;
+  time: string;
+  color: string;
+}
+
+interface RecentActivityProps {
+  activity: ActivityItem[];
+}
+
+const RecentActivity: React.FC<RecentActivityProps> = ({ activity }) => (
   <div className="bg-[#1F1D1B] p-6 rounded-xl border border-[#FFB800]/10">
     <h2 className="text-xl font-bold text-[#FFB800] mb-4">Recent Activity</h2>
     <div className="space-y-4">
-      {activity.map((item, i) => (
-        <div key={i} className="flex items-center justify-between p-3 bg-[#2A2724] rounded-lg">
+      {activity.map((item, index) => (
+        <div key={index} className="flex items-center justify-between p-3 bg-[#2A2724] rounded-lg">
           <div className="flex items-center space-x-3">
             <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
             <div>
@@ -49,12 +65,24 @@ const RecentActivity = ({ activity }) => (
   </div>
 );
 
-const TopAgents = ({ agents }) => (
+interface TopAgent {
+  id: string;
+  name: string;
+  type: AgentType;
+  performance: string;
+  status: string;
+}
+
+interface TopAgentsProps {
+  agents: TopAgent[];
+}
+
+const TopAgents: React.FC<TopAgentsProps> = ({ agents }) => (
   <div className="bg-[#1F1D1B] p-6 rounded-xl border border-[#FFB800]/10">
     <h2 className="text-xl font-bold text-[#FFB800] mb-4">Top Performing Agents</h2>
     <div className="space-y-4">
-      {agents.map((agent, i) => (
-        <div key={i} className="flex items-center justify-between p-4 bg-[#2A2724] rounded-lg">
+      {agents.map((agent) => (
+        <div key={agent.id} className="flex items-center justify-between p-4 bg-[#2A2724] rounded-lg">
           <div className="flex items-center space-x-3">
             <div className={`w-10 h-10 rounded-full bg-gradient-to-r from-[#FFB800] to-[#FF8A00] flex items-center justify-center text-white font-bold`}>
               {agent.name[0]}
@@ -74,21 +102,28 @@ const TopAgents = ({ agents }) => (
   </div>
 );
 
+interface DashboardStats {
+  totalAgents: number;
+  activeAgents: number;
+  totalNotices: number;
+  systemStatus: string;
+}
+
 export const AdminDashboard = () => {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalAgents: 0,
     activeAgents: 0,
     totalNotices: 0,
     systemStatus: 'Healthy'
   });
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [topAgents, setTopAgents] = useState([]);
+  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
+  const [topAgents, setTopAgents] = useState<TopAgent[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         // Fetch agents statistics
-        const allAgents = await db.getAgents('all');
+        const allAgents = await db.getAgents('admin' as AgentType);
         const totalAgents = allAgents.length;
         const activeAgents = allAgents.filter(agent => agent.status === 'active').length;
 
@@ -105,7 +140,7 @@ export const AdminDashboard = () => {
 
         // Get top performing agents (for now, just show the most recently added ones)
         const topAgentsList = allAgents
-          .sort((a, b) => b.createdAt - a.createdAt)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
           .slice(0, 5)
           .map(agent => ({
             id: agent.id,
