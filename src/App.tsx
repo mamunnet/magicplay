@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
-import { Header } from './components/Header';
 import { AgentList } from './pages/AgentList';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -37,8 +36,7 @@ function App() {
           <Route path="/*" element={
             <div className="min-h-screen bg-[#111827]">
               <Navbar />
-              <Header />
-              <div className="container mx-auto px-4 py-8 relative z-10 -mt-16">
+              <div className="container mx-auto px-4 py-8 relative z-10">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/agents/:type" element={<AgentList />} />
