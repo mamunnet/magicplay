@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Users, Facebook, Link as LinkIcon, BookOpen, Shield } from 'lucide-react';
 import { NoticeDisplay } from '../components/NoticeDisplay';
-import { AgentTable } from '../components/AgentTable';
+import { QuickAgentTable } from '../components/QuickAgentTable';
 import { Agent } from '../types/agent';
 import { db } from '../lib/db';
 import toast from 'react-hot-toast';
@@ -30,18 +30,6 @@ export const HomePage = () => {
 
     fetchMasterAgents();
   }, []);
-
-  const handleView = (agent: Agent) => {
-    console.log('View agent:', agent);
-  };
-
-  const handleEdit = (agent: Agent) => {
-    console.log('Edit agent:', agent);
-  };
-
-  const handleDelete = (agent: Agent) => {
-    console.log('Delete agent:', agent);
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0F172A] to-[#1E293B]">
@@ -87,11 +75,8 @@ export const HomePage = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-red-500 border-t-transparent"></div>
                 </div>
               ) : (
-                <AgentTable
+                <QuickAgentTable
                   agents={masterAgents}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
                 />
               )}
             </div>

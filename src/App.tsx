@@ -5,10 +5,12 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AgentManagementPage } from './pages/AgentManagementPage';
+import { AdminReports } from './pages/AdminReports';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 import { SettingsPage } from './pages/SettingsPage';
 import { NoticePage } from './pages/NoticePage';
+import { Footer } from './components/Footer';
 
 function App() {
   return (
@@ -25,6 +27,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<AdminDashboard />} />
                   <Route path="/agents/:type" element={<AgentManagementPage />} />
+                  <Route path="/reports" element={<AdminReports />} />
                   <Route path="/notices" element={<NoticePage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Routes>
@@ -38,8 +41,18 @@ function App() {
               <Navbar />
               <div className="container mx-auto px-4 py-8 relative z-10">
                 <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/agents/:type" element={<AgentList />} />
+                  <Route path="/" element={
+                    <>
+                      <HomePage />
+                      <Footer />
+                    </>
+                  } />
+                  <Route path="/agents/:type" element={
+                    <>
+                      <AgentList />
+                      <Footer />
+                    </>
+                  } />
                 </Routes>
               </div>
             </div>

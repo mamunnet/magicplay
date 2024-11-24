@@ -6,7 +6,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Settings
+  Settings,
+  FileText
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
@@ -44,9 +45,14 @@ const menuItems = [
     label: 'Master Agent'
   },
   {
+    path: '/magicplayadmin/reports',
+    icon: <FileText size={20} />,
+    label: 'Reports'
+  },
+  {
     path: '/magicplayadmin/notices',
     icon: <Bell size={20} />,
-    name: 'Notices',
+    label: 'Notices'
   },
   {
     path: '/magicplayadmin/settings',

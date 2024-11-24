@@ -1,20 +1,72 @@
 import React from 'react';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import { Edit, Trash2, Eye, FileText } from 'lucide-react';
 import { Agent } from '../types/agent';
+import { FaWhatsapp, FaFacebookMessenger } from 'react-icons/fa';
+import { FaStar, FaStarHalfAlt, FaRegStar } from 'react-icons/fa';
 
 interface AgentTableProps {
   agents: Agent[];
   title?: string;
-  onEdit: (agent: Agent) => void;
-  onDelete: (agent: Agent) => void;
+  onEdit?: (agent: Agent) => void;
+  onDelete?: (agent: Agent) => void;
   onView: (agent: Agent) => void;
+  onReports?: (agent: Agent) => void;
 }
 
-export const AgentTable: React.FC<AgentTableProps> = ({ agents, title, onEdit, onDelete, onView }) => {
+export const AgentTable: React.FC<AgentTableProps> = ({ 
+  agents, 
+  title, 
+  onEdit, 
+  onDelete, 
+  onView,
+  onReports 
+}) => {
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
   const getRandomColor = () => {
     const colors = ['bg-[#FFB800]', 'bg-[#FF8A00]', 'bg-[#FFA500]'];
     return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  const renderStars = (rating: number) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+
+    // Add full stars
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <FaStar 
+          key={`full-${i}`} 
+          className="text-[#FFB800]"
+          size={16}
+        />
+      );
+    }
+
+    // Add half star if needed
+    if (hasHalfStar) {
+      stars.push(
+        <FaStarHalfAlt 
+          key="half" 
+          className="text-[#FFB800]"
+          size={16}
+        />
+      );
+    }
+
+    // Add empty stars
+    const emptyStars = 5 - Math.ceil(rating);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(
+        <FaRegStar 
+          key={`empty-${i}`} 
+          className="text-gray-500"
+          size={16}
+        />
+      );
+    }
+
+    return stars;
   };
 
   return (
@@ -48,29 +100,35 @@ export const AgentTable: React.FC<AgentTableProps> = ({ agents, title, onEdit, o
                 </td>
                 <td className="py-4 px-4 text-gray-300">{agent.agentId}</td>
                 <td className="py-4 px-4">
-                  <div className="flex items-center">
-                    <span className="text-[#FFB800]">{agent.rating}</span>
-                    <span className="text-gray-400">/5</span>
+                  <div className="flex items-center space-x-1 group">
+                    <div className="flex">
+                      {renderStars(agent.rating)}
+                    </div>
+                    <span className="text-gray-400 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      ({agent.rating})
+                    </span>
                   </div>
                 </td>
                 <td className="py-4 px-4">
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-3">
                     <a
                       href={`https://wa.me/${agent.whatsapp}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-green-500 hover:text-green-400 transition-colors"
+                      className="p-2 rounded-full bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-400 transition-all"
+                      title="WhatsApp"
                     >
-                      WhatsApp
+                      <FaWhatsapp size={20} />
                     </a>
                     {agent.messenger && (
                       <a
                         href={agent.messenger}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-500 hover:text-blue-400 transition-colors"
+                        className="p-2 rounded-full bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 hover:text-blue-400 transition-all"
+                        title="Messenger"
                       >
-                        Messenger
+                        <FaFacebookMessenger size={20} />
                       </a>
                     )}
                   </div>
@@ -78,16 +136,14 @@ export const AgentTable: React.FC<AgentTableProps> = ({ agents, title, onEdit, o
                 <td className="py-4 px-4 text-gray-300">{agent.phone}</td>
                 <td className="py-4 px-4">
                   <div className="flex space-x-3">
-                    {agent.actions.includes('view') && (
-                      <button
-                        onClick={() => onView(agent)}
-                        className="text-[#FFB800] hover:text-[#FF8A00] transition-colors"
-                        title="View Agent Details"
-                      >
-                        <Eye size={18} />
-                      </button>
-                    )}
-                    {agent.actions.includes('edit') && (
+                    <button
+                      onClick={() => onView(agent)}
+                      className="text-[#FFB800] hover:text-[#FF8A00] transition-colors"
+                      title="View Agent Details"
+                    >
+                      <Eye size={18} />
+                    </button>
+                    {onEdit && (
                       <button
                         onClick={() => onEdit(agent)}
                         className="text-[#FFB800] hover:text-[#FF8A00] transition-colors"
@@ -96,13 +152,22 @@ export const AgentTable: React.FC<AgentTableProps> = ({ agents, title, onEdit, o
                         <Edit size={18} />
                       </button>
                     )}
-                    {agent.actions.includes('delete') && (
+                    {onDelete && (
                       <button
                         onClick={() => onDelete(agent)}
                         className="text-red-500 hover:text-red-400 transition-colors"
                         title="Delete Agent"
                       >
                         <Trash2 size={18} />
+                      </button>
+                    )}
+                    {onReports && (
+                      <button
+                        onClick={() => onReports(agent)}
+                        className="text-[#FFB800] hover:text-[#FF8A00] transition-colors"
+                        title="Report Agent"
+                      >
+                        <FileText size={18} />
                       </button>
                     )}
                   </div>
